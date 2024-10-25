@@ -162,6 +162,17 @@ sudo apt update
 sudo apt install -y cri-o
 ```
 
+Update CRI-O CIDR subnet
+```
+sudo sed -i 's/IP_MASTER_NODE/192.168.0.0/g' /etc/cni/net.d/*
+# Start and enable Service
+sudo systemctl daemon-reload
+sudo systemctl restart crio
+sudo systemctl enable crio
+sudo systemctl status crio
+```
+
+
 Lancement du service CRI-O
 ```
 systemctl start crio.service
@@ -385,33 +396,29 @@ NAME       STATUS   ROLES           AGE     VERSION   INTERNAL-IP     EXTERNAL-I
 HOSTNAME   Ready    control-plane   5m10s   v1.31.2   IP_MASTER_NODE  <none>        Debian GNU/Linux 12 (bookworm)   6.1.0-21-cloud-amd64   cri-o://1.30.6
 ```
 
-### Step 7. Add Worker nodes
+### Step 7. Ajout de Worker nodes
 
-With the control plane ready you can add worker nodes to the cluster for running scheduled workloads.
-
-**NOTE:** Run this only if your worker was used as master before:
+**NOTE:** A exécuter uniquement si le worker était précédement un master node:
 
 ```
 sudo kubeadm reset -f --cri-socket unix:///var/run/crio/crio.sock
 ```
 
-Enable root user
+Passage en user root
 
 ```
 sudo su
 ```
 
-To join, on the worker node, run the following: -
+Pour s'inscrire dans le cluster, exécuter la commande récupéré dans l'output de l'initialisation du cluster:
 
 ```
-kubeadm join IP_MASTER_NODE:6443 --token erfn0x.zjvydfubby17yxum \
---discovery-token-ca-cert-hash sha256:6ffbebf035b8817b62a76ded4eaba2bf52cf20ba1c62afbe0bae2f98818bf8f6 \ 
---cri-socket unix:///var/run/crio/crio.sock \ 
---v=2
+kubeadm join IP_MASTER_NODE --token erfn0x.XXXXXXXXXXXX \
+ --discovery-token-ca-cert-hash sha256:XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX \ 
+--cri-socket unix:///var/run/crio/crio.sock 
 ```
 
-Confirm worker nodes are ready:
-
+Vérifier que les worker nodes sont prêts:
 ```
 kubectl get nodes -o wide
 
