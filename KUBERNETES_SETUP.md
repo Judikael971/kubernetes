@@ -1,6 +1,6 @@
 # Installation Kubernetes Cluster On-Premise via kubeadm
 
-### Prérequis: -
+### Prérequis: 
 
 Il existe **deux types de serveurs** utilisés dans le déploiement de clusters Kubernetes:
 
@@ -8,18 +8,41 @@ Il existe **deux types de serveurs** utilisés dans le déploiement de clusters 
 
 • **Node**: Un Node (nœuds) est un système qui fournit les environnements d'exécution pour les conteneurs. Un ensemble de pods de conteneur peut s'étendre sur plusieurs nodes.
 
-#### Les exigences minimales en configuration machine sont
+
+#### Les exigences minimales en configuration machine sont:
 
 • **Memory**: 2 GiB ou plus de RAM par machine
+
 • **CPUs**: Au moins 2 processeurs sur la machine control plane **Master**
+
 • **Connexion Internet** 
+
 • **Connectivité réseau complète entre les machines du cluster** – Qu'elle soit privée ou public
+
+
+### Ports et Protocoles
+
+**Master (control plane)**
+| Protocol	| Direction	| Port Range	| Purpose	| Used By | 
+| ----------|-----------|---------------|-----------|---------|
+| TCP	| Inbound	| 6443	| Kubernetes API server	| All | 
+| TCP	| Inbound	| 2379-2380	| etcd server client API	| kube-apiserver, etcd | 
+| TCP	| Inbound	| 10250	| Kubelet API	| Self, Control plane | 
+| TCP	| Inbound	| 10259	| kube-scheduler	| Self | 
+| TCP	| Inbound	| 10257	| kube-controller-manager	| Self | 
+
+**Worker node(s)**
+| Protocol	| Direction	| Port Range	| Purpose	| Used By | 
+| ----------|-----------|---------------|-----------|---------|
+| TCP	| Inbound	| 10250	| Kubelet API	| Self, Control plane | 
+| TCP	| Inbound	| 10256	| kube-proxy	| Self, Load balancers | 
+| TCP	| Inbound	| 30000-32767	| NodePort Services	| All | 
 
 ## ---------- Steps ----------
 
 ### Step 1. Configurer le serveur Debian 12
 
-- Mise à jour du serveur
+Mise à jour du serveur
 
 ```
 sudo apt update
@@ -27,19 +50,20 @@ sudo apt -y full-upgrade
 sudo reboot -f
 ```
 
-(optionnel) Renommage du serveur
+Renommage du serveur (optionnel) 
 ```
 cat /etc/hostname
 sudo hostnamectl set-hostname NOM_SERVEUR
 sudo systemctl restart systemd-hostnamed
 ```
 
-(optionnel) Définition d'hosts pour les IP du cluster
+Définition d'hosts pour les IP du cluster (optionnel) 
 ```
 cat /etc/hosts
-vim /etc/hosts
+sudo vim /etc/hosts
 ```
-Ajoutez les hosts
+
+Ajouter les hosts
 ```
 192.168.0.1 HOSTNAME_MASTER
 192.168.0.2 HOSTNAME_WORKER
@@ -56,14 +80,14 @@ Eteindre le swap.
 sudo sed -i '/ swap / s/^\(.*\)$/#\1/g' /etc/fstab
 ```
 
-Now disable Linux swap space permanently in /etc/fstab. Search for a swap line and add # (hashtag) sign in front of the line
+Désactiver définitivement l'espace d'échange Linux dans `/etc/fstab`. Rechercher la ligne de swap et commentez la grace au signe # (hashtag)
 
 ```
 $ sudo vim /etc/fstab
 #/swap.img none swap sw 0 0
 ```
 
-Confirm if the setting is correct
+Vérifier si le réglage est correct
 
 ```
 sudo swapoff -a
@@ -71,7 +95,7 @@ sudo mount -a
 free -h
 ```
 
-Enable kernel modules and configure sysctl
+Activer les modules du kernel et configurer `sysctl`
 
 ```
 # Enable kernel modules
@@ -138,12 +162,12 @@ apt-get update
 apt-get install -y cri-o
 ```
 
-source [github CRI-O](https://github.com/cri-o/packaging/blob/main/README.md#distributions-using-deb-packages)
-
 Lancement du service CRI-O
 ```
 systemctl start crio.service
 ```
+
+source [github CRI-O](https://github.com/cri-o/packaging/blob/main/README.md#distributions-using-deb-packages)
 
 
 ### Step 4. Installation de kubelet, kubeadm and kubectl
@@ -172,7 +196,7 @@ echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.
 sudo chmod 644 /etc/apt/sources.list.d/kubernetes.list
 ```
 
-Then install required packages.
+Installer les packages requis.
 
 ```
 sudo apt update
@@ -181,7 +205,7 @@ sudo apt-mark hold kubelet kubeadm kubectl
 sudo systemctl enable --now kubelet
 ```
 
-Confirm installation by checking the version of kubectl.
+Vérifier l'installation en controlant la version de kubectl.
 
 ```
 $ kubectl version --client && kubeadm version
@@ -192,21 +216,21 @@ Kustomize Version: v5.4.2
 kubeadm version: &version.Info{Major:"1", Minor:"31", GitVersion:"v1.31.2", GitCommit:"5864a4677267e6adeae276ad85882a8714d69d9d", GitTreeState:"clean", BuildDate:"2024-10-22T20:33:59Z", GoVersion:"go1.22.8", Compiler:"gc", Platform:"linux/amd64"}
 ```
 
-### Step 5. Initialize the master node
+### Step 5. Initialisation du Master node
 
-Login to the server to be used as master and make sure that the br_netfilter module is loaded:
+Se connecter au serveur à utiliser comme `master` et s'assurer que le module `br_netfilter` est chargé :
 
 ```
 lsmod | grep br_netfilter
 ```
 
-Enable kubelet service.
+Activer le service kubelet.
 
 ```
 sudo systemctl enable kubelet
 ```
 
-We now want to initialize the machine that will run the control plane components which includes etcd (the cluster database) and the API Server.
+Initialiser la machine qui exécutera les composants du `control plane` qui incluent `etcd` (la base de données du cluster) et le serveur API.
 
 Pull container images
 
@@ -214,33 +238,31 @@ Pull container images
 sudo kubeadm config images pull
 ```
 
-**NOTE**: If you have multiple CRI sockets, please use **--cri-socket** to select one:
+**NOTE**: Si vous avez de plusieurs sockets CRI installé, veuillez utiliser **--cri-socket** pour en sélectionner une :
 
 ```
-# Docker
+# CRI-O
 sudo kubeadm config images pull --cri-socket unix:///var/run/crio/crio.sock 
 ```
 
-These are the basic **kubeadm init** options that are used to bootstrap cluster.
+Options de base utilisées pour amorcer le cluster (**kubeadm init**).
 
 ```
---control-plane-endpoint :  set the shared endpoint for all control-plane nodes. Can be DNS/IP
+--control-plane-endpoint : endpoint partagé pour tous les nœuds du control plane. (Peut être DNS ou IP)
 
 --pod-network-cidr : Used to set a Pod network add-on CIDR
 
---cri-socket : Use if have more than one container runtime to set runtime socket path
+--cri-socket : À utiliser si vous avez de plusieurs sockets CRI installé, pour définir le chemin du socket d'exécution
 
 --apiserver-advertise-address : Set advertise address for this particular control-plane node's API server
 ```
 
-There are 2 ways to bootstrap a cluster.
+Il existe 2 façons d'amorcer un cluster.
 
-1. **Bootstrap without shared endpoint**
-
-To bootstrap a cluster without using DNS endpoint, run:
+**Amorçage du cluster dans endpoint partagé**
 
 ```
-### With Docker CE ###
+### With CRI-O ###
 sudo kubeadm init \
   --pod-network-cidr=192.168.0.0/16 \
   --cri-socket=unix:///var/run/crio/crio.sock  \
@@ -250,7 +272,7 @@ sudo kubeadm init \
 
 (**NOTE**: If you restart your system, then swap would be enabled again. So, you have to disable it again.)
 
-Here is the output of my initialization command.
+Le résultat de la commande d'initialisation.
 
 ```
 ....
@@ -275,9 +297,9 @@ Run "kubectl apply -f [podnetwork].yaml" with one of the options listed at:
 
 You can now join any number of the control-plane node running the following command on each as root:
 
-  kubeadm join IP_MASTER_NODE:6443 --token erfn0x.zjvydfubby17yxum \
- --discovery-token-ca-cert-hash sha256:6ffbebf035b8817b62a76ded4eaba2bf52cf20ba1c62afbe0bae2f98818bf8f6 \
- --control-plane --certificate-key 4393404ebef7f69ec473f9f9ff0bf7b6a0ee8b1b2cf9cedc4f5b2b69948185c5
+  kubeadm join IP_MASTER_NODE:6443 --token erfn0x.XXXXXXXXXXXX \
+ --discovery-token-ca-cert-hash sha256:XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX \
+ --control-plane --certificate-key XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 Please note that the certificate-key gives access to cluster sensitive data, keep it secret!
 As a safeguard, uploaded-certs will be deleted in two hours; If necessary, you can use
@@ -285,11 +307,11 @@ As a safeguard, uploaded-certs will be deleted in two hours; If necessary, you c
 
 Then you can join any number of worker nodes by running the following on each as root:
 
-kubeadm join IP_MASTER_NODE --token erfn0x.zjvydfubby17yxum \
- --discovery-token-ca-cert-hash sha256:6ffbebf035b8817b62a76ded4eaba2bf52cf20ba1c62afbe0bae2f98818bf8f6 
+kubeadm join IP_MASTER_NODE --token erfn0x.XXXXXXXXXXXX \
+ --discovery-token-ca-cert-hash sha256:XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ```
 
-Configure kubectl using commands in the output:
+Configurer `kubectl` à l'aide des commandes dans le résultat :
 
 ```
 mkdir -p $HOME/.kube
@@ -299,7 +321,7 @@ sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
 sudo chown $(id -u):$(id -g) $HOME/.kube/config
 ```
 
-Check cluster status:
+Controler les status du cluster:
 
 ```
 kubectl cluster-info
@@ -323,8 +345,8 @@ Additional Master nodes(Control Plane) can be added using the command in install
 
 ```
 kubeadm join IP_MASTER_NODE:6443 --token erfn0x.zjvydfubby17yxum \
- --discovery-token-ca-cert-hash sha256:6ffbebf035b8817b62a76ded4eaba2bf52cf20ba1c62afbe0bae2f98818bf8f6 \
- --control-plane --certificate-key 4393404ebef7f69ec473f9f9ff0bf7b6a0ee8b1b2cf9cedc4f5b2b69948185c5
+ --discovery-token-ca-cert-hash sha256:XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX \
+ --control-plane --certificate-key XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ```
 
 ### Step 6. Install network plugin on Master
