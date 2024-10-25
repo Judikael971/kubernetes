@@ -200,7 +200,7 @@ Installer les packages requis.
 
 ```
 sudo apt update
-sudo apt install -y vim git curl wget kubelet kubeadm kubectl
+sudo apt install -y kubelet kubeadm kubectl
 sudo apt-mark hold kubelet kubeadm kubectl
 sudo systemctl enable --now kubelet
 ```
@@ -341,10 +341,9 @@ kubectl create clusterrolebinding cluster-system-anonymous --clusterrole=cluster
 Ref: https://www.edureka.co/community/34714/code-error-403-when-trying-to-access-kubernetes-cluster
 ```
 
-Additional Master nodes(Control Plane) can be added using the command in installation output:
-
+Un **Master node** (control plane) additionnel peut être ajouté  en utilisant la commande présent dans l'output de l'initialisation du cluster 
 ```
-kubeadm join IP_MASTER_NODE:6443 --token erfn0x.zjvydfubby17yxum \
+kubeadm join IP_MASTER_NODE:6443 --token erfn0x.XXXXXXXXXXXX \
  --discovery-token-ca-cert-hash sha256:XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX \
  --control-plane --certificate-key XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 ```
