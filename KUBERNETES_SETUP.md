@@ -158,8 +158,8 @@ echo "deb [signed-by=/etc/apt/keyrings/cri-o-apt-keyring.gpg] https://pkgs.k8s.i
 
 Installation du package cri-o
 ```
-apt-get update
-apt-get install -y cri-o
+sudo apt update
+sudo apt install -y cri-o
 ```
 
 Lancement du service CRI-O
@@ -189,10 +189,13 @@ Ajoutez le repository Kubernetes sur tous les serveurs du futur cluster.
 
 ```
 sudo apt install -y apt-transport-https ca-certificates curl gnupg
+
 curl -fsSL https://pkgs.k8s.io/core:/stable:/$KUBERNETES_VERSION/deb/Release.key | sudo gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
 sudo chmod 644 /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
 # This overwrites any existing configuration in /etc/apt/sources.list.d/kubernetes.list
 echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/$KUBERNETES_VERSION/deb/ /' | sudo tee /etc/apt/sources.list.d/kubernetes.list
+
 sudo chmod 644 /etc/apt/sources.list.d/kubernetes.list
 ```
 
