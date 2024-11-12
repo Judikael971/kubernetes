@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Pods
+metadata:
+  name: my-example-pod
+  labels:
+    app: app-name
+    type: frontend
+spec:
+  containers:
+  - name: first-container-name
+    image: image-name
