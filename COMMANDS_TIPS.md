@@ -22,7 +22,7 @@ Liste des plugins d'admission désactivés (en lien avec les schedulers) :
 kubectl exec -it POD_NAME -n NAMESPACE -- kube-apiserver -h | grep 'disable-admission-plugins'
 ```
 
-# Log
+# Logs et Metrics Server
 
 ## Metrics Server
 
@@ -39,4 +39,13 @@ kubectl top node
 Visualiser les metriques des pods:
 ```bash
 kubectl top pod
+```
+## LOG
+Manager les logs des applications :
+```bash
+kubectl logs -f POD_NAME
+```
+S'il y a plusieurs conteneurs dans le POD et que l'on souhaite cibler les logs d'un conteneur en particulier : 
+```bash
+kubectl logs -f POD_NAME CONTAINER_NAME
 ```
