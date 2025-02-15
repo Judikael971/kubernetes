@@ -24,6 +24,8 @@ kubectl exec -it POD_NAME -n NAMESPACE -- kube-apiserver -h | grep 'disable-admi
 
 # Log
 
+## Metrics Server
+
 Deployer **Metrics Server** sur le cluster Kubernetes
 ```bash
 kubectl apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
